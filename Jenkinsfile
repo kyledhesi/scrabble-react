@@ -36,13 +36,12 @@ pipeline {
         stage("deploy") {
             steps {
                 script {
-                    docker.withRegistry("https://949705860149.dkr.ecr.eu-west-2.amazonaws.com', 'ecr:eu-west-2:${AWS_CREDENTIALS}") {
+                    docker.withRegistry("https://949705860149.dkr.ecr.eu-west-2.amazonaws.com", "ecr:eu-west-2:${AWS_CREDENTIALS}") {
                         dockerImage.push("${env.BUILD_NUMBER}")
                         dockerImage.push("latest")
                     }
-                }    
+                }
             }
-
         }
     }
 }
