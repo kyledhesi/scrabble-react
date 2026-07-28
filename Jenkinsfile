@@ -1,21 +1,19 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:22'
+        }
+    }
 
     environment {
         AWS_CREDENTIALS = 'aws-credentials'
-        GIT_REPO = "https://github.com/kyledhesi/rock-paper-scissors.git" 
     }
     
     stages {
-        stage("checkout") {
-            steps {
-                git branch: 'main',
-                url: GIT_REPO
-            }
-        }
         stage("build") {
             steps {
                 sh 'npm install'
+                sh 'npm run build'
             }
         }
 
