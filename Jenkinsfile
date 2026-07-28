@@ -28,7 +28,8 @@ pipeline {
             steps {
                 script {
                     dockerImage = docker.build('scrabble-webapp')
-                    sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/docker-hub:${BUILD_NUMBER}"
+                    sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:${BUILD_NUMBER}"
+                    sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:latest"
                 }
             }
         }
