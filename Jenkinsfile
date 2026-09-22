@@ -7,6 +7,7 @@ pipeline {
 
     environment {
         AWS_CREDENTIALS = 'aws-credentials'
+        PATH = "/usr/local/bin:/opt/homebrew/bin:${env.PATH}"
 
     }
     
