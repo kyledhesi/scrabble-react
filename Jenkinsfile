@@ -28,13 +28,28 @@ pipeline {
         stage('build container') {
             steps {
                 script {
-                    def dockerImage = docker.build('scrabble-webapp')
+                    dockerImage = docker.build('scrabble-webapp')
 
                     sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:${BUILD_NUMBER}"
                     sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:latest"
                 }
             }
         }
+        
+        stage('Check Docker') {
+    steps {
+        sh '''
+            echo "PATH=$PATH"
+            echo "Docker location:"
+            which docker
+            echo "Docker version:"
+            docker --version
+            echo "Docker executable:"
+            ls -l /usr/local/bin/docker
+        '''
+    }
+}
+        
 
         stage('deploy') {
             steps {
