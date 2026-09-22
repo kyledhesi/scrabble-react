@@ -39,12 +39,17 @@ pipeline {
         stage('deploy') {
              steps {
                 script {
-                    sh '''
-                        aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 949705860149.dkr.ecr.eu-west-2.amazonaws.com
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: env.AWS_CREDENTIALS]
+                    ]) {
+                        sh '''
+                            aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 949705860149.dkr.ecr.eu-west-2.amazonaws.com
 
-                        docker push 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:${BUILD_NUMBER}
-                        docker push 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:latest
-                    '''
+                            docker push 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:${BUILD_NUMBER}
+                            docker push 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:latest
+                        '''
+                    }
                 }
             }
         }
