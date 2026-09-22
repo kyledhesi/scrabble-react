@@ -8,15 +8,18 @@ terraform {
 }
 
 data "aws_ecr_repository" "container_repository" {
-  name = "scrabble-webapp"
+  name = var.ecr_repository_name
+}
+
+data "aws_caller_identity" "current" {
 }
 
 # Create a VPC
 resource "aws_vpc" "vpc" {
-  cidr_block = "10.0.0.0/16"
-  region     = "eu-west-2"
+  cidr_block = var.vpc_cidr_block
+  region     = var.region
   tags = {
-    Name = "Scrabble-VPC"
+    Name = var.vpc_name
   }
 }
 
@@ -34,8 +37,8 @@ resource "aws_internet_gateway" "igw" {
 # 2 public and 2 private in different Availability Zones for redundancy
 resource "aws_subnet" "subnet_public_1a" {
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "eu-west-2a"
+  cidr_block        = var.public_subnet_1a_cidr
+  availability_zone = var.availability_zone_1
 
   tags = {
     Name = "scrabble-public-1A"
@@ -44,8 +47,8 @@ resource "aws_subnet" "subnet_public_1a" {
 
 resource "aws_subnet" "subnet_private_1b" {
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "eu-west-2a"
+  cidr_block        = var.private_subnet_1b_cidr
+  availability_zone = var.availability_zone_1
 
   tags = {
     Name = "scrabble-private-1B"
@@ -54,8 +57,8 @@ resource "aws_subnet" "subnet_private_1b" {
 
 resource "aws_subnet" "subnet_public_2a" {
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.11.0/24"
-  availability_zone = "eu-west-2b"
+  cidr_block        = var.public_subnet_2a_cidr
+  availability_zone = var.availability_zone_2
 
   tags = {
     Name = "scrabble-public-2A"
@@ -64,21 +67,11 @@ resource "aws_subnet" "subnet_public_2a" {
 
 resource "aws_subnet" "subnet_private_2b" {
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.12.0/24"
-  availability_zone = "eu-west-2b"
+  cidr_block        = var.private_subnet_2b_cidr
+  availability_zone = var.availability_zone_2
 
   tags = {
     Name = "scrabble-private-2B"
-  }
-}
-
-# Create the traffic routes for VPC route table 
-resource "aws_route_table" "vpc_route_table" {
-  vpc_id = aws_vpc.vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
   }
 }
 
@@ -97,10 +90,10 @@ resource "aws_nat_gateway" "public_subnet_1_nat" {
   subnet_id     = aws_subnet.subnet_public_1a.id
 
   tags = {
-    Name = "gw NAT"
+    Name = "Public Subnet 1 NAT Gateway"
   }
 
-  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # To ensure proper ordering add an explicit dependency
   # on the Internet Gateway for the VPC.
   depends_on = [aws_internet_gateway.igw]
 }
@@ -110,10 +103,10 @@ resource "aws_nat_gateway" "public_subnet_2_nat" {
   subnet_id     = aws_subnet.subnet_public_2a.id
 
   tags = {
-    Name = "gw NAT"
+    Name = "Public Subnet 2 NAT Gateway"
   }
 
-  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # To ensure proper ordering add an explicit dependency
   # on the Internet Gateway for the VPC.
   depends_on = [aws_internet_gateway.igw]
 }
@@ -185,8 +178,8 @@ resource "aws_security_group" "alb_sg" {
 
 # Create IP target group for alb
 resource "aws_lb_target_group" "scrabble_ip_tg" {
-  name        = "scrabble-ip-tg"
-  port        = 80
+  name        = var.target_group_name
+  port        = var.port_number
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.vpc.id
@@ -194,7 +187,7 @@ resource "aws_lb_target_group" "scrabble_ip_tg" {
 
 # Create public facing load balancer
 resource "aws_lb" "scrabble_alb" {
-  name               = "scrabble-alb"
+  name               = var.alb_name
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -219,17 +212,17 @@ resource "aws_lb_listener" "scrabble_alb_listener" {
 resource "aws_vpc_security_group_ingress_rule" "alb_sg_allow_http" {
   security_group_id = aws_security_group.alb_sg.id
   cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 80
+  from_port         = var.port_number
   ip_protocol       = "tcp"
-  to_port           = 80
+  to_port           = var.port_number
 }
 
 resource "aws_vpc_security_group_egress_rule" "alb_sg_allow_http" {
   security_group_id = aws_security_group.alb_sg.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "tcp"
-  from_port         = 80
-  to_port           = 80
+  from_port         = var.port_number
+  to_port           = var.port_number
 }
 
 # Create new security group for ecs
@@ -242,9 +235,9 @@ resource "aws_security_group" "ecs_sg" {
 resource "aws_vpc_security_group_ingress_rule" "ecs_sg_inbound" {
   security_group_id            = aws_security_group.ecs_sg.id
   referenced_security_group_id = aws_security_group.alb_sg.id
-  from_port                    = 80
+  from_port                    = var.port_number
   ip_protocol                  = "tcp"
-  to_port                      = 80
+  to_port                      = var.port_number
 }
 resource "aws_vpc_security_group_egress_rule" "ecs_sg_outbound" {
   security_group_id = aws_security_group.ecs_sg.id
@@ -254,7 +247,7 @@ resource "aws_vpc_security_group_egress_rule" "ecs_sg_outbound" {
 
 # Create ECS cluster
 resource "aws_ecs_cluster" "scrabble_cluster" {
-  name = "scrabble-cluster"
+  name = var.ecs_cluster_name
   setting {
     name  = "containerInsights"
     value = "enabled"
@@ -263,30 +256,30 @@ resource "aws_ecs_cluster" "scrabble_cluster" {
 
 # Create ECS task definition 
 resource "aws_ecs_task_definition" "scrabble_task_definition" {
-  family                   = "scrabble-task-definition"
+  family                   = var.aws_ecs_task_definition_family_name
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "1024"
-  memory                   = "3072"
+  cpu                      = var.ecs_cpu
+  memory                   = var.ecs_memory
   network_mode             = "awsvpc"
-  execution_role_arn       = "arn:aws:iam::949705860149:role/ecsTaskExecutionRole"
+  execution_role_arn       = local.execution_role_arn
   container_definitions = jsonencode([
     {
-      name  = "scrabble-main"
+      name  = var.ecs_container_name
       image = data.aws_ecr_repository.container_repository.repository_url
 
       portMappings = [
         {
-          containerPort = 80
+          containerPort = var.port_number
           protocol      = "TCP"
         }
       ]
 
-      logConfiguration = { 
+      logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = "/ecs/scrabble"
-          awslogs-region        = "eu-west-2"
-          awslogs-stream-prefix = "scrabble"
+          awslogs-group         = var.log_group_name
+          awslogs-region        = var.region
+          awslogs-stream-prefix = var.log_stream_prefix
         }
       }
     }
@@ -295,10 +288,10 @@ resource "aws_ecs_task_definition" "scrabble_task_definition" {
 
 # Create ECS service
 resource "aws_ecs_service" "scrabble" {
-  name                          = "scrabble"
+  name                          = var.ecs_service_name
   task_definition               = aws_ecs_task_definition.scrabble_task_definition.arn
   cluster                       = aws_ecs_cluster.scrabble_cluster.id
-  desired_count                 = 2
+  desired_count                 = var.ecs_desired_count
   launch_type                   = "FARGATE"
   platform_version              = "LATEST"
   availability_zone_rebalancing = "ENABLED"
@@ -313,10 +306,7 @@ resource "aws_ecs_service" "scrabble" {
 
   load_balancer {
     container_name   = "scrabble-main"
-    container_port   = 80
+    container_port   = var.port_number
     target_group_arn = aws_lb_target_group.scrabble_ip_tg.arn
   }
 }
-
-
-
