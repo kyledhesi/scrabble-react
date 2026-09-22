@@ -35,32 +35,16 @@ pipeline {
                 }
             }
         }
-        
-        stage('Check Docker') {
-    steps {
-        sh '''
-            echo "PATH=$PATH"
-            echo "Docker location:"
-            which docker
-            echo "Docker version:"
-            docker --version
-            echo "Docker executable:"
-            ls -l /usr/local/bin/docker
-        '''
-    }
-}
-        
 
         stage('deploy') {
-            steps {
+             steps {
                 script {
-                    docker.withRegistry(
-                        "https://949705860149.dkr.ecr.eu-west-2.amazonaws.com",
-                        "ecr:eu-west-2:${AWS_CREDENTIALS}"
-                    ) {
-                        dockerImage.push("${env.BUILD_NUMBER}")
-                        dockerImage.push('latest')
-                    }
+                    sh '''
+                        aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 949705860149.dkr.ecr.eu-west-2.amazonaws.com
+
+                        docker push 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:${BUILD_NUMBER}
+                        docker push 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:latest
+                    '''
                 }
             }
         }
