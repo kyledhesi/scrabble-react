@@ -7,7 +7,8 @@ pipeline {
 
     environment {
         AWS_CREDENTIALS = 'aws-credentials'
-        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
+        //PATH = "/usr/local/bin:/opt/homebrew/bin:${env.PATH}"
+        PATH = "/usr/local/bin:${env.PATH}"
     }
 
     stages {
