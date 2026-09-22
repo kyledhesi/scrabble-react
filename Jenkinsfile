@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         AWS_CREDENTIALS = 'aws-credentials'
-        PATH = "/usr/local/bin:/opt/homebrew/bin:${env.PATH}"
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
     }
 
     stages {
@@ -27,7 +27,7 @@ pipeline {
         stage('build container') {
             steps {
                 script {
-                    dockerImage = docker.build('scrabble-webapp')
+                    def dockerImage = docker.build('scrabble-webapp')
 
                     sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:${BUILD_NUMBER}"
                     sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:latest"
