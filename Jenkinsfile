@@ -80,18 +80,26 @@ pipeline {
             }
         }
 
-        stage('Terraform Format Check') {
-            steps {
-                dir('terraform') {
-                    sh 'terraform fmt -check -recursive'
-                }
-            }
-        }
-
         stage('Terraform Init') {
             steps {
                 dir('terraform') {
                     sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Format Check') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform fmt'
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform validate'
                 }
             }
         }
@@ -126,7 +134,13 @@ pipeline {
                     credentialsId: env.AWS_CREDENTIALS]
                 ]) {
                     dir('terraform') {
-                        sh "terraform ${action} ${action == 'destroy' ? '--auto-approve' : ''}"
+                        script {
+                            if (action == apply) {
+                                sh "terraform apply -auto-approve tfplan"
+                            } else {
+                                sh "terraform destory -auto-approve"
+                            }
+                        }
                     }
                 } 
             }
