@@ -7,8 +7,10 @@ pipeline {
 
     environment {
         AWS_CREDENTIALS = 'aws-credentials'
-        //PATH = "/usr/local/bin:/opt/homebrew/bin:${env.PATH}"
         PATH = "/usr/local/bin:${env.PATH}"
+        CONTAINER_NAME = "scrabble-webapp"
+        AWS_ECR_URL = "949705860149.dkr.ecr.eu-west-2.amazonaws.com"
+        AWS_REGION = "eu-west-2"
     }
 
     stages {
@@ -28,10 +30,10 @@ pipeline {
         stage('build container') {
             steps {
                 script {
-                    dockerImage = docker.build('scrabble-webapp')
+                    dockerImage = docker.build("${CONTAINER_NAME}")
 
-                    sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:${BUILD_NUMBER}"
-                    sh "docker tag scrabble-webapp 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:latest"
+                    sh "docker tag ${CONTAINER_NAME} ${AWS_ECR_URL}/${CONTAINER_NAME}:${BUILD_NUMBER}"
+                    sh "docker tag ${CONTAINER_NAME} ${AWS_ECR_URL}/${CONTAINER_NAME}:latest"
                 }
             }
         }
@@ -44,10 +46,12 @@ pipeline {
                         credentialsId: env.AWS_CREDENTIALS]
                     ]) {
                         sh '''
-                            aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 949705860149.dkr.ecr.eu-west-2.amazonaws.com
+                            set -e
+                            
+                            aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin ${AWS_ECR_URL}
 
-                            docker push 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:${BUILD_NUMBER}
-                            docker push 949705860149.dkr.ecr.eu-west-2.amazonaws.com/scrabble-webapp:latest
+                            docker push ${AWS_ECR_URL}/${CONTAINER_NAME}:${BUILD_NUMBER}
+                            docker push ${AWS_ECR_URL}/${CONTAINER_NAME}:latest
                         '''
                     }
                 }
@@ -72,8 +76,14 @@ pipeline {
 
         stage('Terraform Plan') {
             steps {
-                dir('terraform') {
-                    sh 'terraform plan -out=tfplan'
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: env.AWS_CREDENTIALS]
+                ]) {
+                    dir('terraform') {
+                        sh 'terraform plan -out=tfplan'
+                    }
+
                 }
             }
         }
@@ -87,13 +97,13 @@ pipeline {
             }
         }
 
-        stage('Terraform Action') {
-            steps {
-                dir('terraform') {
-                    sh "terraform ${action} ${action == 'destroy' ? '--auto-approve' : ''}"
-                }   
-            }
-        }
+        //stage('Terraform Action') {
+            //steps {
+                //dir('terraform') {
+                    //sh "terraform ${action} ${action == 'destroy' ? '--auto-approve' : ''}"
+                //}   
+            //}
+        //}
     }
 
     post {
