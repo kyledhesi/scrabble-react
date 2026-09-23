@@ -15,6 +15,11 @@ pipeline {
 
     stages {
         stage('build') {
+            when {
+                expression {
+                    action == 'apply'
+                }
+            }
             steps {
                 sh 'npm install'
                 sh 'npm run build'
@@ -22,12 +27,22 @@ pipeline {
         }
 
         stage('test') {
+            when {
+                expression {
+                    action == 'apply'
+                }
+            }
             steps {
                 sh 'npm test'
             }
         }
 
         stage('build container') {
+            when {
+                expression {
+                    action == 'apply'
+                }
+            }
             steps {
                 script {
                     dockerImage = docker.build("${CONTAINER_NAME}")
@@ -39,6 +54,11 @@ pipeline {
         }
 
         stage('deploy') {
+            when {
+                expression {
+                    action == 'apply'
+                }
+            }
              steps {
                 script {
                     withCredentials([
@@ -99,13 +119,18 @@ pipeline {
             }
         }
 
-        //stage('Terraform Action') {
-            //steps {
-                //dir('terraform') {
-                    //sh "terraform ${action} ${action == 'destroy' ? '--auto-approve' : ''}"
-                //}   
-            //}
-        //}
+        stage('Terraform Action') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: env.AWS_CREDENTIALS]
+                ]) {
+                    dir('terraform') {
+                        sh "terraform ${action} ${action == 'destroy' ? '--auto-approve' : ''}"
+                    }
+                } 
+            }
+        }
     }
 
     post {
