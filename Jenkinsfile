@@ -50,6 +50,8 @@ pipeline {
                             
                             aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin ${AWS_ECR_URL}
 
+                            aws ecr create-repository --repository-name ${CONTAINER_NAME} --region ${AWS_REGION}
+
                             docker push ${AWS_ECR_URL}/${CONTAINER_NAME}:${BUILD_NUMBER}
                             docker push ${AWS_ECR_URL}/${CONTAINER_NAME}:latest
                         '''
