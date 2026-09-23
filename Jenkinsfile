@@ -135,10 +135,10 @@ pipeline {
                 ]) {
                     dir('terraform') {
                         script {
-                            if (action == apply) {
+                            if (action == "apply") {
                                 sh "terraform apply -auto-approve tfplan"
                             } else {
-                                sh "terraform destory -auto-approve"
+                                sh "terraform destroy -auto-approve"
                             }
                         }
                     }
