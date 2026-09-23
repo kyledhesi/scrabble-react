@@ -105,6 +105,11 @@ pipeline {
         }
 
         stage('Terraform Plan') {
+            when {
+                expression {
+                    action == 'apply'
+                }
+            }
             steps {
                 withCredentials([
                     [$class: 'AmazonWebServicesCredentialsBinding',

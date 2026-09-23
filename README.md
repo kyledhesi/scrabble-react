@@ -14,7 +14,8 @@ The purpose of this project was to develop my skills with Jenkins and Terraform.
    - Runs tests
    - Builds a Docker image
    - Pushes the image to Amazon ECR
-3. **IaC (Terraform)** - Manually executing Terraform apply which creates:
+   - Runs terraform commands
+3. **IaC (Terraform)** - Jenkins executes command 'terraform apply' which creates:
    - VPC — custom VPC with configurable CIDR block
    - Networking — Internet Gateway, 2 public and 2 private subnets across two Availability Zones (for redundancy)
    - NAT Gateways — one per public subnet (with associated Elastic IPs), giving private subnets outbound internet access
